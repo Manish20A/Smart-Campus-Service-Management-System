@@ -48,8 +48,8 @@ The design language avoids generic AI tropes (no purple/blue gradients, no neon 
 
 ### Automation & Notifications
 16. **Automated SLA Escalation Sentinel**:
-   - Secure Vercel Cron endpoint (`/api/cron/escalate` secured with `CRON_SECRET`) running hourly.
-   - Lazy evaluation on dashboard load for zero-downtime protection even on free-tier hosting.
+   - Secure Vercel Cron endpoint (`/api/cron/escalate` secured with `CRON_SECRET`) configured for daily execution (`0 0 * * *`) on Vercel Hobby free tier.
+   - Lazy evaluation on dashboard load for real-time SLA breach detection and escalation without requiring Pro-tier hourly crons.
    - Automatically elevates overdue tickets to `Urgent`, alerts department leadership, and logs escalation events.
 17. **In-App & Email Notifications**:
    - Notification bell drawer with unread counter, mark-as-read, and full inbox (`/notifications`).
@@ -157,8 +157,8 @@ firebase deploy --only firestore:rules,firestore:indexes
    ```
 2. Log into [Vercel](https://vercel.com/) and click **Add New &rarr; Project**.
 3. Import the repository `Manish20A/Smart-Campus-Service-Management-System`.
-4. Under **Environment Variables**, add the keys defined in `.env.example`.
-5. Click **Deploy**. Vercel will automatically detect `vercel.json` and configure the hourly SLA escalation Cron job at `/api/cron/escalate`.
+4. Under **Environment Variables**, click **"or paste the .env contents"** and paste the variables from `.env.example` (or configure your live Firebase credentials).
+5. Click **Deploy**. Vercel will automatically detect `vercel.json` with the Hobby-compliant daily cron (`0 0 * * *`) at `/api/cron/escalate`, paired with CampusDesk's real-time lazy dashboard evaluator.
 
 ---
 
