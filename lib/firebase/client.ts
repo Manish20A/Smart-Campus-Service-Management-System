@@ -2,33 +2,46 @@ import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyD-hXA_MFILCW7gqGjQXLijzmyGGgBdLfA",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "campusdesk-61dfa.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "campusdesk-61dfa",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "campusdesk-61dfa.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "507664868049",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:507664868049:web:736679f27fac03816e5bf0",
+const REAL_CONFIG = {
+  apiKey: "AIzaSyD-hXA_MFILCW7gqGjQXLijzmyGGgBdLfA",
+  authDomain: "campusdesk-61dfa.firebaseapp.com",
+  projectId: "campusdesk-61dfa",
+  storageBucket: "campusdesk-61dfa.firebasestorage.app",
+  messagingSenderId: "507664868049",
+  appId: "1:507664868049:web:736679f27fac03816e5bf0",
 };
 
-export const isFirebaseConfigured = (() => {
-  const key = firebaseConfig.apiKey;
-  const project = firebaseConfig.projectId;
-  if (!key || !project) return false;
-  // Check for placeholder or demo strings
-  const isPlaceholderKey =
-    key.includes("Mock") ||
-    key.includes("Demo") ||
-    key.includes("Your") ||
-    key.includes("placeholder") ||
-    key.includes("Preview") ||
-    key.length < 25;
-  const isPlaceholderProject =
-    project === "campusdesk-demo" ||
-    project.includes("your-project-id") ||
-    project === "demo";
-  return !isPlaceholderKey && !isPlaceholderProject;
-})();
+function resolveConfig() {
+  const envKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const envProject = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+
+  const isInvalidKey =
+    !envKey ||
+    envKey.includes("Your") ||
+    envKey.includes("Mock") ||
+    envKey.includes("placeholder") ||
+    envKey.includes("Preview") ||
+    envKey.length < 25;
+
+  const isInvalidProject =
+    !envProject ||
+    envProject === "your-project-id" ||
+    envProject === "campusdesk-demo" ||
+    envProject === "demo";
+
+  return {
+    apiKey: isInvalidKey ? REAL_CONFIG.apiKey : envKey,
+    authDomain: isInvalidProject ? REAL_CONFIG.authDomain : (process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || REAL_CONFIG.authDomain),
+    projectId: isInvalidProject ? REAL_CONFIG.projectId : envProject,
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || REAL_CONFIG.storageBucket,
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || REAL_CONFIG.messagingSenderId,
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || REAL_CONFIG.appId,
+  };
+}
+
+const firebaseConfig = resolveConfig();
+
+export const isFirebaseConfigured = true;
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
@@ -48,12 +61,12 @@ export async function testFirebaseConnection(): Promise<{
   projectId: string;
   message: string;
 }> {
-  if (!isFirebaseConfigured || !db) {
+  if (!db) {
     return {
-      configured: false,
+      configured: true,
       connected: false,
-      projectId: firebaseConfig.projectId || "demo",
-      message: "Running in local demo mode (Firebase keys not yet configured).",
+      projectId: firebaseConfig.projectId,
+      message: "Firestore instance not available.",
     };
   }
 
