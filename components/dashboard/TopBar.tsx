@@ -58,53 +58,27 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-md">
-      {/* Optional Dismissible Campus Announcement */}
-      {announcement && !announcementDismissed && (
-        <div className="bg-[var(--surface-hover)] border-b border-[var(--border)] px-4 py-1.5 flex items-center justify-between text-xs text-[var(--foreground)]">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Megaphone className="h-3.5 w-3.5 text-[var(--accent)] shrink-0" />
-            <span className="font-medium text-[var(--accent)] shrink-0">Announcement:</span>
-            <span className="truncate text-[var(--foreground-muted)]">{announcement.title} — {announcement.content}</span>
-          </div>
-          <button
-            onClick={() => setAnnouncementDismissed(true)}
-            className="text-[var(--foreground-muted)] hover:text-[var(--foreground)] p-1 shrink-0 cursor-pointer"
-            aria-label="Dismiss banner"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      <div className="h-16 px-4 sm:px-6 flex items-center justify-between gap-4">
+      <div className="h-14 px-4 sm:px-6 flex items-center justify-between gap-4">
         {/* Search / Command Palette shortcut trigger */}
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-sm">
           <button
             onClick={() => {
               window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
             }}
-            className="w-full flex items-center justify-between h-9 px-3 rounded-[6px] border border-[var(--border)] bg-[var(--surface-elevated)] text-xs text-[var(--foreground-muted)] hover:border-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between h-8 px-3 rounded-[6px] border border-[var(--border)] bg-[var(--surface-elevated)] text-xs text-[var(--foreground-muted)] hover:border-[var(--foreground-subtle)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Search className="h-3.5 w-3.5 text-[var(--foreground-subtle)]" />
-              <span>Search requests, services, or actions...</span>
+              <span>Quick search or jump...</span>
             </div>
-            <kbd className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px] bg-[var(--surface-hover)] border border-[var(--border)] px-1.5 py-0.5 rounded text-[var(--foreground-muted)]">
+            <kbd className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px] bg-[var(--surface-hover)] border border-[var(--border)] px-1.5 py-0.2 rounded text-[var(--foreground-muted)]">
               ⌘K
             </kbd>
           </button>
         </div>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-2.5">
-          {role === "student" && (
-            <Link href="/services">
-              <Button size="sm" variant="primary" className="hidden sm:inline-flex gap-1.5">
-                <Plus className="h-3.5 w-3.5" />
-                Submit Request
-              </Button>
-            </Link>
-          )}
+        <div className="flex items-center gap-2">
 
           {/* Theme switcher */}
           <div className="flex items-center border border-[var(--border)] rounded-[6px] p-0.5 bg-[var(--surface-elevated)]">
