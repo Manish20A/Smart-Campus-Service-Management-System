@@ -46,7 +46,7 @@ class CampusDataStore {
         try {
           this.requests = JSON.parse(storedReqs);
           this.departments = JSON.parse(localStorage.getItem("campusdesk_departments") || "[]");
-          this.services = JSON.parse(localStorage.getItem("campusdesk_services") || "[]");
+          this.services = [...SEED_SERVICES];
           this.users = JSON.parse(localStorage.getItem("campusdesk_users") || "[]");
           this.events = JSON.parse(localStorage.getItem("campusdesk_events") || "{}");
           this.comments = JSON.parse(localStorage.getItem("campusdesk_comments") || "{}");

@@ -36,10 +36,11 @@ export default function ServicesCatalogPage() {
 
   const categoryTabs = [
     { id: "All", label: "All Services" },
-    { id: "Academic", label: "Academic" },
-    { id: "Facilities", label: "Housing & Repairs" },
-    { id: "IT & Lab", label: "Labs & Computing" },
-    { id: "Student Life", label: "Campus Access" },
+    { id: "Academic", label: "Grades & Certificates" },
+    { id: "Facilities", label: "Room & Repairs" },
+    { id: "IT & Lab", label: "Internet & Labs" },
+    { id: "Hostel & Living", label: "Hostel & Passes" },
+    { id: "Administrative", label: "ID & Medical Leave" },
   ];
 
   const filteredServices = useMemo(() => {
