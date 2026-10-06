@@ -3,17 +3,17 @@ import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyMockKeyForDevReviewMode00000",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "campusdesk-demo.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "campusdesk-demo",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "campusdesk-demo.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyD-hXA_MFILCW7gqGjQXLijzmyGGgBdLfA",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "campusdesk-61dfa.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "campusdesk-61dfa",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "campusdesk-61dfa.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "507664868049",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:507664868049:web:736679f27fac03816e5bf0",
 };
 
 export const isFirebaseConfigured = (() => {
-  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-  const project = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const key = firebaseConfig.apiKey;
+  const project = firebaseConfig.projectId;
   if (!key || !project) return false;
   // Check for placeholder or demo strings
   const isPlaceholderKey =
@@ -26,7 +26,7 @@ export const isFirebaseConfigured = (() => {
   const isPlaceholderProject =
     project === "campusdesk-demo" ||
     project.includes("your-project-id") ||
-    project.includes("demo");
+    project === "demo";
   return !isPlaceholderKey && !isPlaceholderProject;
 })();
 
@@ -52,8 +52,8 @@ export async function testFirebaseConnection(): Promise<{
     return {
       configured: false,
       connected: false,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo",
-      message: "Running in local offline mode (Firebase keys not yet configured).",
+      projectId: firebaseConfig.projectId || "demo",
+      message: "Running in local demo mode (Firebase keys not yet configured).",
     };
   }
 
@@ -63,14 +63,14 @@ export async function testFirebaseConnection(): Promise<{
     return {
       configured: true,
       connected: true,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
-      message: "Successfully connected to Cloud Firestore!",
+      projectId: firebaseConfig.projectId,
+      message: `Successfully connected to Cloud Firestore (${firebaseConfig.projectId})!`,
     };
   } catch (err: any) {
     return {
       configured: true,
       connected: false,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      projectId: firebaseConfig.projectId,
       message: err.message || "Failed to reach Cloud Firestore.",
     };
   }
