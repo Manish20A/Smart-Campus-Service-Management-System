@@ -290,6 +290,34 @@ function RequestsTableContent({
         </div>
       </div>
 
+      {/* Operational Highlights */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+          <div className="text-[11px] font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+            Total Queue
+          </div>
+          <div className="text-xl font-serif font-bold text-[var(--foreground)] mt-0.5">
+            {allRequests.length} <span className="text-xs font-sans font-normal text-[var(--foreground-subtle)]">tickets</span>
+          </div>
+        </div>
+        <div className="p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+          <div className="text-[11px] font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+            In Progress
+          </div>
+          <div className="text-xl font-serif font-bold text-[var(--accent)] mt-0.5">
+            {allRequests.filter((r) => r.status === "in_progress").length} <span className="text-xs font-sans font-normal text-[var(--foreground-subtle)]">specialist active</span>
+          </div>
+        </div>
+        <div className="p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] shadow-xs">
+          <div className="text-[11px] font-medium text-[var(--foreground-muted)] uppercase tracking-wider">
+            Needs Attention
+          </div>
+          <div className="text-xl font-serif font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+            {allRequests.filter((r) => r.isOverdue || r.status === "pending").length} <span className="text-xs font-sans font-normal text-[var(--foreground-subtle)]">overdue / intake</span>
+          </div>
+        </div>
+      </div>
+
       {/* Saved View Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-[var(--border-subtle)]">
         {[

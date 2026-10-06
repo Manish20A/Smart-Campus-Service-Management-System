@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -21,6 +21,7 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, role, switchDemoRole } = useAuth();
 
   const studentLinks = [
@@ -108,7 +109,10 @@ export function Sidebar() {
           </div>
           <div className="grid grid-cols-3 gap-1">
             <button
-              onClick={() => switchDemoRole("student")}
+              onClick={() => {
+                switchDemoRole("student");
+                router.push("/student/requests");
+              }}
               className={cn(
                 "text-[10px] py-1 rounded border transition-colors cursor-pointer",
                 role === "student"
@@ -119,7 +123,10 @@ export function Sidebar() {
               Student
             </button>
             <button
-              onClick={() => switchDemoRole("staff")}
+              onClick={() => {
+                switchDemoRole("staff");
+                router.push("/staff/requests");
+              }}
               className={cn(
                 "text-[10px] py-1 rounded border transition-colors cursor-pointer",
                 role === "staff"
@@ -130,7 +137,10 @@ export function Sidebar() {
               Staff
             </button>
             <button
-              onClick={() => switchDemoRole("admin")}
+              onClick={() => {
+                switchDemoRole("admin");
+                router.push("/admin/requests");
+              }}
               className={cn(
                 "text-[10px] py-1 rounded border transition-colors cursor-pointer",
                 role === "admin"

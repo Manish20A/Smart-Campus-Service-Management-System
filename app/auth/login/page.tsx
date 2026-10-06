@@ -8,14 +8,21 @@ import { useToast } from "@/components/ui/Toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import {
+  GraduationCap,
+  Briefcase,
+  ShieldAlert,
+  ArrowRight,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Please provide a valid university email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -42,10 +49,16 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await login(data.email, data.password);
-      success("Welcome back to CampusDesk.");
-      router.push("/student/requests");
+      success("Welcome to CampusDesk.");
+      if (data.email.includes("admin")) {
+        router.push("/admin/requests");
+      } else if (data.email.includes("staff")) {
+        router.push("/staff/requests");
+      } else {
+        router.push("/student/requests");
+      }
     } catch (err: any) {
-      toastError(err.message || "Failed to authenticate.");
+      toastError(err?.message || "Failed to sign in. Please try one of the demo buttons above.");
     } finally {
       setIsLoading(false);
     }
@@ -53,71 +66,135 @@ export default function LoginPage() {
 
   const handleQuickLogin = (role: "student" | "staff" | "admin") => {
     switchDemoRole(role);
-    success(`Logged in as Demo ${role.toUpperCase()}`);
+    success(`Signed in as ${role === "student" ? "Student (Aria Chen)" : role === "staff" ? "Faculty Staff (Prof. Elena)" : "Administrator (Dr. Vance)"}`);
     if (role === "admin") router.push("/admin/requests");
     else if (role === "staff") router.push("/staff/requests");
     else router.push("/student/requests");
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link href="/" className="inline-flex items-center gap-2 group mb-4">
-          <div className="h-9 w-9 rounded-[8px] bg-[var(--accent)] text-white flex items-center justify-center font-serif text-lg font-bold shadow-xs">
+    <div className="min-h-screen bg-[var(--background)] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center mb-8">
+        <Link href="/" className="inline-flex items-center gap-2 group mb-3">
+          <div className="h-10 w-10 rounded-[8px] bg-[var(--accent)] text-white flex items-center justify-center font-serif text-xl font-bold shadow-sm">
             C
           </div>
-          <span className="font-serif text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+          <span className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--foreground)]">
             CampusDesk
           </span>
         </Link>
-        <h2 className="text-xl font-serif font-semibold tracking-tight text-[var(--foreground)]">
+        <h1 className="text-xl sm:text-2xl font-serif font-semibold text-[var(--foreground)]">
           Sign In to Your Campus Portal
-        </h2>
-        <p className="text-xs text-[var(--foreground-muted)] mt-1">
-          Use your registered university email or pick a quick demo profile below.
+        </h1>
+        <p className="text-xs sm:text-sm text-[var(--foreground-muted)] mt-1.5 max-w-md mx-auto">
+          Explore as a student, faculty specialist, or administrator with instant 1-click access below.
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4 sm:px-0 space-y-6">
-        {/* Quick Demo Access Box */}
-        <div className="p-4 rounded-[10px] border border-[var(--border)] bg-[var(--surface-hover)]/40 space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--accent)]">
-            <Sparkles className="h-3.5 w-3.5" />
-            Instant One-Click Review Login
+      <div className="sm:mx-auto sm:w-full sm:max-w-xl space-y-6">
+        {/* Instant 1-Click Role Profiles */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-[12px] p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)]">
+            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--accent)]">
+              <Sparkles className="h-3.5 w-3.5" />
+              1-Click Instant Demo Portals
+            </span>
+            <span className="text-[11px] text-[var(--foreground-subtle)]">No password needed</span>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Student Card */}
             <button
+              type="button"
               onClick={() => handleQuickLogin("student")}
-              className="py-2 px-1 text-center rounded-[6px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[11px] font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="text-left p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
             >
-              Student
-              <span className="block text-[9px] text-[var(--foreground-subtle)] font-normal">Aria Chen</span>
+              <div>
+                <div className="h-8 w-8 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mb-2.5">
+                  <GraduationCap className="h-4 w-4" />
+                </div>
+                <div className="font-serif text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+                  Student Portal
+                </div>
+                <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">
+                  Aria Chen • Junior
+                </p>
+                <p className="text-[10px] text-[var(--foreground-muted)] mt-2 line-clamp-2">
+                  Track tickets, submit requests & view timelines.
+                </p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-medium text-[var(--accent)]">
+                Enter Portal
+                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </button>
+
+            {/* Staff Card */}
             <button
+              type="button"
               onClick={() => handleQuickLogin("staff")}
-              className="py-2 px-1 text-center rounded-[6px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[11px] font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="text-left p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
             >
-              Faculty Staff
-              <span className="block text-[9px] text-[var(--foreground-subtle)] font-normal">Prof. Elena</span>
+              <div>
+                <div className="h-8 w-8 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5">
+                  <Briefcase className="h-4 w-4" />
+                </div>
+                <div className="font-serif text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+                  Faculty Staff
+                </div>
+                <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">
+                  Prof. Elena Rostova
+                </p>
+                <p className="text-[10px] text-[var(--foreground-muted)] mt-2 line-clamp-2">
+                  Review queue, assign specialists & resolve tickets.
+                </p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-medium text-[var(--accent)]">
+                Enter Queue
+                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </button>
+
+            {/* Admin Card */}
             <button
+              type="button"
               onClick={() => handleQuickLogin("admin")}
-              className="py-2 px-1 text-center rounded-[6px] border border-[var(--border)] bg-[var(--surface-elevated)] text-[11px] font-medium hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors cursor-pointer"
+              className="text-left p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--accent)] hover:shadow-xs transition-all cursor-pointer group flex flex-col justify-between"
             >
-              Administrator
-              <span className="block text-[9px] text-[var(--foreground-subtle)] font-normal">Dean Vance</span>
+              <div>
+                <div className="h-8 w-8 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2.5">
+                  <ShieldAlert className="h-4 w-4" />
+                </div>
+                <div className="font-serif text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+                  Administrator
+                </div>
+                <p className="text-[11px] text-[var(--foreground-subtle)] mt-0.5">
+                  Dr. Arthur Vance
+                </p>
+                <p className="text-[10px] text-[var(--foreground-muted)] mt-2 line-clamp-2">
+                  Workload analytics, SLAs, catalog & governance.
+                </p>
+              </div>
+              <div className="mt-3 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px] font-medium text-[var(--accent)]">
+                Enter Admin
+                <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
             </button>
           </div>
         </div>
 
-        {/* Regular Sign In Form */}
-        <Card>
+        {/* Regular Sign-In Box */}
+        <Card className="border border-[var(--border)]">
           <CardContent className="p-6">
+            <div className="text-xs font-medium uppercase tracking-wider text-[var(--foreground-subtle)] mb-4">
+              Or Sign In With Email
+            </div>
+
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <Input
-                label="University Email Address"
+                label="University Email"
                 type="email"
-                placeholder="name@campusdesk.edu"
+                placeholder="student@campusdesk.edu"
                 error={errors.email?.message}
                 {...register("email")}
               />
@@ -130,7 +207,10 @@ export default function LoginPage() {
                   error={errors.password?.message}
                   {...register("password")}
                 />
-                <div className="flex justify-end pt-1">
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-[var(--foreground-subtle)]">
+                    Demo hint: any password works
+                  </span>
                   <Link
                     href="/auth/reset"
                     className="text-[11px] text-[var(--accent)] hover:underline"
@@ -153,10 +233,11 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
+        {/* Footer Link */}
         <p className="text-center text-xs text-[var(--foreground-muted)]">
-          Don&apos;t have an account yet?{" "}
+          Need a new student profile?{" "}
           <Link href="/auth/register" className="text-[var(--accent)] font-semibold hover:underline">
-            Register as a Student
+            Register your student account
           </Link>
         </p>
       </div>

@@ -179,6 +179,26 @@ class CampusDataStore {
     return this.users.find((u) => u.uid === id);
   }
 
+  public createUser(user: UserProfile): void {
+    this.init();
+    const idx = this.users.findIndex((u) => u.uid === user.uid || u.email.toLowerCase() === user.email.toLowerCase());
+    if (idx >= 0) {
+      this.users[idx] = user;
+    } else {
+      this.users.push(user);
+    }
+    this.save();
+  }
+
+  public updateUser(uid: string, updates: Partial<UserProfile>): UserProfile | undefined {
+    this.init();
+    const user = this.users.find((u) => u.uid === uid);
+    if (!user) return undefined;
+    Object.assign(user, updates, { updatedAt: new Date().toISOString() });
+    this.save();
+    return user;
+  }
+
   // Requests
   public getRequests(filters?: {
     studentId?: string;

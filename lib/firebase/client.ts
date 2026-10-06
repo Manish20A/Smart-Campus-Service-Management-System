@@ -11,11 +11,24 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456",
 };
 
-export const isFirebaseConfigured = !!(
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-  process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== "AIzaSyMockKeyForDevReviewMode00000"
-);
+export const isFirebaseConfigured = (() => {
+  const key = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const project = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  if (!key || !project) return false;
+  // Check for placeholder or demo strings
+  const isPlaceholderKey =
+    key.includes("Mock") ||
+    key.includes("Demo") ||
+    key.includes("Your") ||
+    key.includes("placeholder") ||
+    key.includes("Preview") ||
+    key.length < 25;
+  const isPlaceholderProject =
+    project === "campusdesk-demo" ||
+    project.includes("your-project-id") ||
+    project.includes("demo");
+  return !isPlaceholderKey && !isPlaceholderProject;
+})();
 
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
