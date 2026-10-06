@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { dataStore } from "@/lib/data/store";
 
 export const dynamic = "force-dynamic";
 
-// Simple in-memory rate limiter: max 30 requests per minute per IP
+// Simple in-memory rate limiter: max 40 requests per minute per IP
 const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
 
 function checkRateLimit(ip: string): boolean {
@@ -14,16 +13,12 @@ function checkRateLimit(ip: string): boolean {
     rateLimitMap.set(ip, { count: 1, expiresAt: now + 60000 });
     return true;
   }
-  if (entry.count >= 30) {
+  if (entry.count >= 40) {
     return false;
   }
   entry.count += 1;
   return true;
 }
-
-const paramsSchema = z.object({
-  ticketId: z.string().min(3).max(30),
-});
 
 export async function GET(
   request: NextRequest,
@@ -38,22 +33,47 @@ export async function GET(
   }
 
   const { ticketId: rawTicketId } = await context.params;
-  const parsed = paramsSchema.safeParse({ ticketId: rawTicketId });
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid ticket identifier" }, { status: 400 });
+  const decoded = decodeURIComponent(rawTicketId || "").trim();
+
+  if (!decoded || decoded.length < 1) {
+    return NextResponse.json({ error: "Please enter a valid ticket identifier." }, { status: 400 });
   }
 
-  const req = dataStore.getRequestById(parsed.data.ticketId);
+  // Normalize inputs e.g. "1" -> "CD-2026-00001", "42" -> "CD-2026-00042", "CD-42" -> "CD-2026-00042"
+  let searchKey = decoded.toUpperCase();
+  if (/^\d+$/.test(searchKey)) {
+    searchKey = `CD-2026-${searchKey.padStart(5, "0")}`;
+  } else if (/^CD-(\d+)$/i.test(searchKey)) {
+    const digits = searchKey.replace(/^CD-/i, "");
+    searchKey = `CD-2026-${digits.padStart(5, "0")}`;
+  } else if (/^CD-2026-(\d+)$/i.test(searchKey)) {
+    const digits = searchKey.replace(/^CD-2026-/i, "");
+    searchKey = `CD-2026-${digits.padStart(5, "0")}`;
+  }
+
+  let req = dataStore.getRequestById(searchKey);
+  if (!req) {
+    // Case-insensitive fallback
+    req = dataStore.getRequests().find(
+      (r) =>
+        r.ticketId.toUpperCase() === searchKey ||
+        r.ticketId.toUpperCase() === decoded.toUpperCase() ||
+        r.id.toLowerCase() === decoded.toLowerCase()
+    );
+  }
+
   if (!req) {
     return NextResponse.json(
-      { error: "No service request matching this identifier was found." },
+      {
+        error: `No service request matching "${decoded}" was found. Try clicking one of the demo ticket buttons below.`,
+      },
       { status: 404 }
     );
   }
 
   const events = dataStore.getEvents(req.id);
 
-  // Whitelisted, sanitized public payload (no student roll number, phone, email, or internal staff notes)
+  // Whitelisted, sanitized public payload
   const publicPayload = {
     ticketId: req.ticketId,
     serviceName: req.serviceName,
