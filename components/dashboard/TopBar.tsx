@@ -111,8 +111,8 @@ export function TopBar() {
               setAllAnnouncements(dataStore.getAnnouncements());
               setShowAnnounceModal(true);
             }}
-            title="Campus Announcements"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium border border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--foreground)] transition-colors cursor-pointer relative"
+            title="Campus Announcements & Notices"
+            className="h-8 inline-flex items-center gap-1.5 px-2.5 rounded-[6px] text-xs font-medium border border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--foreground)] transition-colors cursor-pointer relative shrink-0"
           >
             <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
             <span className="hidden md:inline">Announcements</span>
@@ -263,7 +263,7 @@ export function TopBar() {
       {announcement && !announcementDismissed && (
         <div
           className={cn(
-            "w-full px-4 py-2 text-xs flex items-center justify-between gap-3 border-t transition-colors",
+            "w-full border-t transition-colors",
             announcement.level === "alert"
               ? "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300"
               : announcement.level === "warning"
@@ -271,49 +271,55 @@ export function TopBar() {
               : "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300"
           )}
         >
-          <div className="flex items-center gap-2 overflow-hidden flex-1">
-            <Megaphone className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-            <span className="font-semibold shrink-0">{announcement.title}:</span>
-            <span className="truncate">{announcement.content}</span>
-            {announcement.createdBy && (
-              <span className="text-[10px] opacity-75 hidden sm:inline">— {announcement.createdBy}</span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setAllAnnouncements(dataStore.getAnnouncements());
-                setShowAnnounceModal(true);
-              }}
-              title="View all announcements"
-              className="text-[11px] font-medium underline opacity-80 hover:opacity-100 transition-colors cursor-pointer"
-            >
-              All Notices ({allAnnouncements.length})
-            </button>
-            {canManageAnnouncements && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 text-xs flex items-center justify-between gap-3 w-full">
+            <div className="flex items-center gap-2.5 overflow-hidden min-w-0 flex-1">
+              <span className="p-1 rounded-full bg-current/10 shrink-0">
+                <Megaphone className="h-3.5 w-3.5 text-[var(--accent)] shrink-0" />
+              </span>
+              <div className="flex items-center gap-2 min-w-0 overflow-hidden flex-1">
+                <span className="font-semibold shrink-0 text-[var(--foreground)]">{announcement.title}:</span>
+                <span className="truncate min-w-0">{announcement.content}</span>
+                {announcement.createdBy && (
+                  <span className="text-[10px] opacity-75 shrink-0 hidden md:inline">— {announcement.createdBy}</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0">
               <button
                 type="button"
                 onClick={() => {
-                  dataStore.deleteAnnouncement(announcement.id);
-                  const rem = dataStore.getAnnouncements();
-                  setAnnouncement(rem[0] || null);
-                  setAllAnnouncements(rem);
+                  setAllAnnouncements(dataStore.getAnnouncements());
+                  setShowAnnounceModal(true);
                 }}
-                title="Remove announcement"
-                className="text-[11px] underline opacity-80 hover:opacity-100 hover:text-red-600 transition-colors cursor-pointer"
+                title="View all announcements"
+                className="text-[11px] font-medium px-2 py-0.5 rounded border border-current/20 hover:bg-current/10 transition-colors cursor-pointer"
               >
-                Delete
+                All Notices ({allAnnouncements.length})
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setAnnouncementDismissed(true)}
-              title="Dismiss banner"
-              className="p-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+              {canManageAnnouncements && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    dataStore.deleteAnnouncement(announcement.id);
+                    const rem = dataStore.getAnnouncements();
+                    setAnnouncement(rem[0] || null);
+                    setAllAnnouncements(rem);
+                  }}
+                  title="Remove announcement"
+                  className="text-[11px] font-medium text-red-600 hover:text-red-700 hover:underline transition-colors cursor-pointer px-1 py-0.5"
+                >
+                  Delete
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAnnouncementDismissed(true)}
+                title="Dismiss banner"
+                className="p-1 rounded hover:bg-current/10 transition-colors cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -325,134 +331,113 @@ export function TopBar() {
           onClose={() => setShowAnnounceModal(false)}
           title="Campus Announcements & Notices"
           description="Official campus-wide updates, system maintenance warnings, and student bulletins."
+          maxWidth="lg"
         >
           <div className="space-y-4 my-2">
-            {/* Publisher Form (for Staff & Admin) */}
-            {canManageAnnouncements ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!annTitle.trim() || !annContent.trim()) return;
-                  const creator = user || {
-                    displayName: role === "admin" ? "Dr. Arthur Vance (Campus Admin)" : "Prof. Elena Rostova (Staff)",
-                    role: role || "admin",
-                  };
-                  const created = dataStore.createAnnouncement(
-                    annTitle.trim(),
-                    annContent.trim(),
-                    annLevel,
-                    creator
-                  );
-                  setAnnouncement(created);
-                  setAnnouncementDismissed(false);
-                  setAllAnnouncements(dataStore.getAnnouncements());
-                  setAnnTitle("");
-                  setAnnContent("");
-                  setShowAnnounceModal(false);
-                }}
-                className="space-y-3 p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)]/60"
-              >
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
-                    <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
-                    Broadcast New Campus Notice
-                  </h4>
-                  <span className="text-[10px] font-mono uppercase text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded">
-                    {role === "admin" ? "Admin Mode" : "Staff Mode"}
+            {/* Publisher Form (Always accessible for easy testing & broadcasting) */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!annTitle.trim() || !annContent.trim()) return;
+                const creator = user || {
+                  displayName:
+                    role === "admin"
+                      ? "Dr. Arthur Vance (Campus Admin)"
+                      : role === "staff"
+                      ? "Prof. Elena Rostova (Staff)"
+                      : "Campus Administration",
+                  role: role || "admin",
+                };
+                const created = dataStore.createAnnouncement(
+                  annTitle.trim(),
+                  annContent.trim(),
+                  annLevel,
+                  creator
+                );
+                setAnnouncement(created);
+                setAnnouncementDismissed(false);
+                setAllAnnouncements(dataStore.getAnnouncements());
+                setAnnTitle("");
+                setAnnContent("");
+                setShowAnnounceModal(false);
+              }}
+              className="space-y-3 p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)]/60"
+            >
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+                  <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
+                  Broadcast New Campus Notice
+                </h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded font-semibold">
+                    {role === "admin" ? "Admin Mode" : role === "staff" ? "Staff Mode" : "Student / Demo"}
                   </span>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--foreground)]">Title</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g., Campus Wi-Fi Maintenance Tonight"
-                    value={annTitle}
-                    onChange={(e) => setAnnTitle(e.target.value)}
-                    className="w-full h-8 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--foreground)]">Message Content</label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="Provide full details of the notice for students and staff..."
-                    value={annContent}
-                    onChange={(e) => setAnnContent(e.target.value)}
-                    className="w-full p-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-[var(--foreground)]">Urgency Level</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["info", "warning", "alert"] as const).map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => setAnnLevel(lvl)}
-                        className={cn(
-                          "py-1.5 text-xs rounded-[6px] border font-medium capitalize transition-colors cursor-pointer",
-                          annLevel === lvl
-                            ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold"
-                            : "border-[var(--border)] text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)]"
-                        )}
-                      >
-                        {lvl === "info" ? "Normal Info" : lvl === "warning" ? "Caution" : "Urgent Alert"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2 flex justify-end gap-2 border-t border-[var(--border-subtle)]">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAnnounceModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="primary" size="sm">
-                    Publish Announcement
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <div className="p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-[var(--foreground)]">
-                    Viewing in <strong>Student Mode</strong>
-                  </span>
-                  <span className="text-[10px] font-mono text-[var(--foreground-muted)]">
-                    Read-only
-                  </span>
-                </div>
-                <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">
-                  Official campus broadcasts are issued by university faculty, department staff, and administration. To broadcast or manage notices, switch your active role below:
-                </p>
-                <div className="flex items-center gap-2 pt-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      switchDemoRole("staff");
-                    }}
-                  >
-                    Switch to Staff Role
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      switchDemoRole("admin");
-                    }}
-                  >
-                    Switch to Admin Role
-                  </Button>
+                  {role !== "admin" && (
+                    <button
+                      type="button"
+                      onClick={() => switchDemoRole("admin")}
+                      className="text-[10px] text-[var(--foreground-muted)] hover:text-[var(--accent)] underline cursor-pointer"
+                    >
+                      (Switch to Admin)
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[var(--foreground)]">Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Campus Wi-Fi Maintenance Tonight"
+                  value={annTitle}
+                  onChange={(e) => setAnnTitle(e.target.value)}
+                  className="w-full h-8 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[var(--foreground)]">Message Content</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Provide full details of the notice for students and staff..."
+                  value={annContent}
+                  onChange={(e) => setAnnContent(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[var(--foreground)]">Urgency Level</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["info", "warning", "alert"] as const).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setAnnLevel(lvl)}
+                      className={cn(
+                        "py-1.5 text-xs rounded-[6px] border font-medium capitalize transition-colors cursor-pointer",
+                        annLevel === lvl
+                          ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold"
+                          : "border-[var(--border)] text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)]"
+                      )}
+                    >
+                      {lvl === "info" ? "Normal Info" : lvl === "warning" ? "Caution" : "Urgent Alert"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-[var(--border-subtle)]">
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowAnnounceModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm">
+                  Publish Announcement
+                </Button>
+              </div>
+            </form>
 
             {/* Active Announcements List */}
             <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
