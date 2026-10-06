@@ -4,7 +4,9 @@ import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { dataStore } from "@/lib/data/store";
-import { Service } from "@/types";
+import { Service, RequestPriority, ServiceCategory } from "@/types";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
 import {
   Search,
   Clock,
@@ -23,16 +25,32 @@ import {
   Home,
   KeyRound,
   Building2,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 
 export default function ServicesCatalogPage() {
+  const { role, user } = useAuth();
+  const { success, error: toastError } = useToast();
+  const canManageServices = role === "admin" || role === "staff";
+
+  const [services, setServices] = useState<Service[]>(() => dataStore.getServices());
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [faqService, setFaqService] = useState<Service | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const services = useMemo(() => dataStore.getServices(), []);
+  // Form state for adding new service
+  const [newName, setNewName] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [newDepartmentId, setNewDepartmentId] = useState("dept-registrar");
+  const [newCategory, setNewCategory] = useState<ServiceCategory>("Academic");
+  const [newSlaHours, setNewSlaHours] = useState(24);
+  const [newPriority, setNewPriority] = useState<RequestPriority>("normal");
+
+  const departments = useMemo(() => dataStore.getDepartments(), []);
 
   const categoryTabs = [
     { id: "All", label: "All Services" },
@@ -95,17 +113,63 @@ export default function ServicesCatalogPage() {
     return `~${days} business days`;
   };
 
+  const handleAddService = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName.trim() || !newDescription.trim()) {
+      toastError("Please provide both a service title and a description.");
+      return;
+    }
+
+    const dept = departments.find((d) => d.id === newDepartmentId);
+    const created = dataStore.addService({
+      name: newName.trim(),
+      description: newDescription.trim(),
+      departmentId: newDepartmentId,
+      departmentName: dept?.name || "General Academic Office",
+      category: newCategory,
+      slaHours: Number(newSlaHours) || 24,
+      defaultPriority: newPriority,
+    });
+
+    setServices(dataStore.getServices());
+    setShowAddModal(false);
+    setNewName("");
+    setNewDescription("");
+    success(`Service "${created.name}" has been added to the catalog.`);
+  };
+
+  const handleDeleteService = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to remove "${name}" from the service catalog?`)) {
+      dataStore.deleteService(id);
+      setServices(dataStore.getServices());
+      success(`Service "${name}" removed from catalog.`);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Calm Header */}
-        <div className="pt-2 pb-1">
-          <h1 className="text-2xl font-serif font-semibold tracking-tight text-[var(--foreground)]">
-            Service Catalog
-          </h1>
-          <p className="text-xs text-[var(--foreground-muted)] mt-0.5">
-            Select any campus service below to submit an intake request.
-          </p>
+        <div className="pt-2 pb-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-serif font-semibold tracking-tight text-[var(--foreground)]">
+              Service Catalog
+            </h1>
+            <p className="text-xs text-[var(--foreground-muted)] mt-0.5">
+              Select any campus service below to submit an intake request.
+            </p>
+          </div>
+          {canManageServices && (
+            <Button
+              onClick={() => setShowAddModal(true)}
+              size="sm"
+              variant="primary"
+              className="gap-1.5 h-8 text-xs shrink-0 self-start sm:self-auto"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Service
+            </Button>
+          )}
         </div>
 
         {/* Clean Filter Line */}
@@ -195,12 +259,24 @@ export default function ServicesCatalogPage() {
                     </span>
                   )}
 
-                  <Link href={`/services/${srv.id}/apply`}>
-                    <Button size="sm" variant="primary" className="text-xs gap-1.5 h-7">
-                      Apply
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    {canManageServices && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteService(srv.id, srv.name)}
+                        title="Remove from Catalog"
+                        className="p-1.5 rounded-[4px] text-[var(--foreground-subtle)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <Link href={`/services/${srv.id}/apply`}>
+                      <Button size="sm" variant="primary" className="text-xs gap-1.5 h-7">
+                        Apply
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
@@ -212,6 +288,131 @@ export default function ServicesCatalogPage() {
               Try searching for &quot;transcript&quot;, &quot;wifi&quot;, &quot;repair&quot;, or &quot;leave&quot;.
             </p>
           </div>
+        )}
+
+        {/* Add Service Modal (Staff & Admin only) */}
+        {showAddModal && (
+          <Modal
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+            title="Add New Campus Service"
+            description="Create a new service entry for students and staff to request."
+          >
+            <form onSubmit={handleAddService} className="space-y-4 my-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--foreground)]">
+                  Service Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g., Library Study Room Reservation"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full h-9 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder:text-[var(--foreground-subtle)] focus:outline-none focus:border-[var(--accent)]"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-[var(--foreground)]">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Explain what this service is in clear, simple terms..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="w-full p-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder:text-[var(--foreground-subtle)] focus:outline-none focus:border-[var(--accent)] resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">
+                    Responsible Department
+                  </label>
+                  <select
+                    value={newDepartmentId}
+                    onChange={(e) => setNewDepartmentId(e.target.value)}
+                    className="w-full h-9 px-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                  >
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">
+                    Category Tab
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as ServiceCategory)}
+                    className="w-full h-9 px-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="Academic">Academic (Grades & Certificates)</option>
+                    <option value="Facilities">Facilities (Room & Repairs)</option>
+                    <option value="IT & Lab">IT & Lab (Internet & Tools)</option>
+                    <option value="Hostel & Living">Hostel & Living (Passes & Rooms)</option>
+                    <option value="Administrative">Administrative (ID & Medical)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">
+                    Standard Turnaround Time (Hours)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={168}
+                    value={newSlaHours}
+                    onChange={(e) => setNewSlaHours(Number(e.target.value))}
+                    className="w-full h-9 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                  />
+                  <span className="text-[10px] text-[var(--foreground-muted)]">
+                    e.g., 24 = 1 business day, 48 = 2 days
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">
+                    Default Priority
+                  </label>
+                  <select
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value as RequestPriority)}
+                    className="w-full h-9 px-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="low">Low (Standard)</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2 border-t border-[var(--border-subtle)]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm">
+                  Create Service
+                </Button>
+              </div>
+            </form>
+          </Modal>
         )}
 
         {/* Guidance Modal */}

@@ -10,6 +10,7 @@ import {
   UserProfile,
   RequestStatus,
   RequestPriority,
+  ServiceCategory,
 } from "@/types";
 import {
   SEED_DEPARTMENTS,
@@ -45,8 +46,16 @@ class CampusDataStore {
       if (storedReqs) {
         try {
           this.requests = JSON.parse(storedReqs);
-          this.departments = JSON.parse(localStorage.getItem("campusdesk_departments") || "[]");
-          this.services = [...SEED_SERVICES];
+          const storedServices = localStorage.getItem("campusdesk_services");
+          if (storedServices) {
+            try {
+              this.services = JSON.parse(storedServices);
+            } catch {
+              this.services = [...SEED_SERVICES];
+            }
+          } else {
+            this.services = [...SEED_SERVICES];
+          }
           this.users = JSON.parse(localStorage.getItem("campusdesk_users") || "[]");
           this.events = JSON.parse(localStorage.getItem("campusdesk_events") || "{}");
           this.comments = JSON.parse(localStorage.getItem("campusdesk_comments") || "{}");
@@ -168,6 +177,75 @@ class CampusDataStore {
   public getServiceById(id: string): Service | undefined {
     this.init();
     return this.services.find((s) => s.id === id);
+  }
+
+  public addService(serviceData: {
+    name: string;
+    description: string;
+    departmentId: string;
+    departmentName: string;
+    category: ServiceCategory;
+    slaHours: number;
+    defaultPriority?: RequestPriority;
+  }): Service {
+    this.init();
+    const id = `srv-${Date.now()}`;
+    const initials = serviceData.name
+      .split(" ")
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() || "")
+      .join("");
+    const code = (initials || "SRV") + `-${Math.floor(100 + Math.random() * 900)}`;
+
+    const newService: Service = {
+      id,
+      name: serviceData.name,
+      code,
+      description: serviceData.description,
+      departmentId: serviceData.departmentId,
+      departmentName: serviceData.departmentName,
+      category: serviceData.category,
+      defaultPriority: serviceData.defaultPriority || "normal",
+      slaHours: serviceData.slaHours || 24,
+      autoAssignEnabled: true,
+      icon: "FileText",
+      isActive: true,
+      requiredFields: [
+        {
+          id: "details",
+          label: "Request Details & Notes",
+          type: "textarea",
+          placeholder: "Describe your request in detail...",
+          required: true,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    };
+
+    this.services.unshift(newService);
+    this.save();
+
+    if (isFirebaseConfigured && db) {
+      const activeDb = db;
+      import("firebase/firestore").then(({ doc, setDoc }) => {
+        setDoc(doc(activeDb, "services", id), newService).catch(console.warn);
+      }).catch(console.warn);
+    }
+
+    return newService;
+  }
+
+  public deleteService(id: string): void {
+    this.init();
+    this.services = this.services.filter((s) => s.id !== id);
+    this.save();
+
+    if (isFirebaseConfigured && db) {
+      const activeDb = db;
+      import("firebase/firestore").then(({ doc, deleteDoc }) => {
+        deleteDoc(doc(activeDb, "services", id)).catch(console.warn);
+      }).catch(console.warn);
+    }
   }
 
   public getUsers(): UserProfile[] {

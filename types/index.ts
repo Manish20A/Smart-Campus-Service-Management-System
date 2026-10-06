@@ -73,6 +73,8 @@ export interface ServiceFaq {
   answer: string;
 }
 
+export type ServiceCategory = "Academic" | "Facilities" | "Hostel & Living" | "IT & Lab" | "Administrative";
+
 export interface Service {
   id: string;
   name: string;
@@ -80,7 +82,7 @@ export interface Service {
   description: string;
   departmentId: string;
   departmentName: string;
-  category: "Academic" | "Facilities" | "Hostel & Living" | "IT & Lab" | "Administrative";
+  category: ServiceCategory;
   defaultPriority: RequestPriority;
   slaHours: number;
   requiredFields: ServiceFieldSchema[];
