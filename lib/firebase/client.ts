@@ -42,4 +42,38 @@ try {
   console.warn("Firebase client initialization warning:", error);
 }
 
+export async function testFirebaseConnection(): Promise<{
+  configured: boolean;
+  connected: boolean;
+  projectId: string;
+  message: string;
+}> {
+  if (!isFirebaseConfigured || !db) {
+    return {
+      configured: false,
+      connected: false,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "demo",
+      message: "Running in local offline mode (Firebase keys not yet configured).",
+    };
+  }
+
+  try {
+    const { doc, getDoc } = await import("firebase/firestore");
+    await getDoc(doc(db, "_system", "ping"));
+    return {
+      configured: true,
+      connected: true,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      message: "Successfully connected to Cloud Firestore!",
+    };
+  } catch (err: any) {
+    return {
+      configured: true,
+      connected: false,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      message: err.message || "Failed to reach Cloud Firestore.",
+    };
+  }
+}
+
 export { app, auth, db };

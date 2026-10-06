@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn, formatTimeAgo } from "@/lib/utils";
+import { isFirebaseConfigured } from "@/lib/firebase/client";
 
 export function TopBar() {
   const { user, role } = useAuth();
@@ -79,6 +80,24 @@ export function TopBar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          {/* Live Firebase / Demo Mode Indicator */}
+          {isFirebaseConfigured ? (
+            <span
+              title="Connected to Google Cloud Firestore (campusdesk-61dfa)"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[10px] font-mono border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Firebase: Live
+            </span>
+          ) : (
+            <span
+              title="Running in offline local mode. Add Firebase keys in Vercel to connect live Firestore."
+              className="hidden sm:inline-flex items-center gap-1.5 px-2 py-1 rounded-[6px] text-[10px] font-mono border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground-muted)]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              Demo Mode
+            </span>
+          )}
 
           {/* Theme switcher */}
           <div className="flex items-center border border-[var(--border)] rounded-[6px] p-0.5 bg-[var(--surface-elevated)]">

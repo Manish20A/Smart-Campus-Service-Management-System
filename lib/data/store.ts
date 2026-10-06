@@ -19,6 +19,7 @@ import {
   generateSeedRequests,
 } from "./seedData";
 import { generateNextTicketId } from "@/lib/firebase/counter";
+import { db, isFirebaseConfigured } from "@/lib/firebase/client";
 
 class CampusDataStore {
   private departments: Department[] = [];
@@ -414,6 +415,20 @@ class CampusDataStore {
     );
 
     this.save();
+
+    // Async sync to Cloud Firestore if active
+    if (isFirebaseConfigured && db) {
+      const activeDb = db;
+      import("firebase/firestore").then(({ doc, setDoc }) => {
+        setDoc(doc(activeDb, "requests", id), newRequest).catch((e) =>
+          console.warn("Firestore sync request warning:", e)
+        );
+        setDoc(doc(activeDb, "events", id), { items: events }).catch((e) =>
+          console.warn("Firestore sync events warning:", e)
+        );
+      }).catch((e) => console.warn("Firestore dynamic import warning:", e));
+    }
+
     return newRequest;
   }
 

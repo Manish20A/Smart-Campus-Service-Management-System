@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { dataStore } from "@/lib/data/store";
 import {
   Search,
   CheckCircle2,
@@ -80,7 +81,57 @@ function PublicTrackContent() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/track/${encodeURIComponent(id.trim())}`);
+      // 1. Normalize ID format (e.g. "43" -> "CD-2026-00043")
+      let normalized = id.trim().toUpperCase();
+      if (/^\d+$/.test(normalized)) {
+        normalized = `CD-2026-${normalized.padStart(5, "0")}`;
+      } else if (/^CD-(\d+)$/i.test(normalized)) {
+        const digits = normalized.replace(/^CD-/i, "");
+        normalized = `CD-2026-${digits.padStart(5, "0")}`;
+      } else if (/^CD-2026-(\d+)$/i.test(normalized)) {
+        const digits = normalized.replace(/^CD-2026-/i, "");
+        normalized = `CD-2026-${digits.padStart(5, "0")}`;
+      }
+
+      // 2. Check client-side dataStore first (contains all requests created in this browser session!)
+      const clientReq =
+        dataStore.getRequestById(normalized) ||
+        dataStore.getRequestById(id.trim()) ||
+        dataStore.getRequests().find(
+          (r) =>
+            r.ticketId.toUpperCase() === normalized ||
+            r.ticketId.toUpperCase() === id.trim().toUpperCase() ||
+            r.id.toLowerCase() === id.trim().toLowerCase()
+        );
+
+      if (clientReq) {
+        const events = dataStore.getEvents(clientReq.id);
+        setResult({
+          ticketId: clientReq.ticketId,
+          serviceName: clientReq.serviceName,
+          serviceCategory: clientReq.serviceCategory,
+          departmentName: clientReq.departmentName,
+          status: clientReq.status,
+          priority: clientReq.priority,
+          estimatedCompletionAt: clientReq.estimatedCompletionAt,
+          createdAt: clientReq.createdAt,
+          completedAt: clientReq.completedAt,
+          isOverdue: clientReq.isOverdue,
+          escalated: clientReq.escalated,
+          timeline: events.map((ev) => ({
+            id: ev.id,
+            type: ev.type,
+            title: ev.title,
+            description: ev.description,
+            actorRole: ev.actorRole,
+            createdAt: ev.createdAt,
+          })),
+        });
+        return;
+      }
+
+      // 3. Fallback to server tracking API route
+      const res = await fetch(`/api/track/${encodeURIComponent(normalized)}`);
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Ticket not found");
