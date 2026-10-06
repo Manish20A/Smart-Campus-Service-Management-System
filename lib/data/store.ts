@@ -59,8 +59,17 @@ class CampusDataStore {
           this.users = JSON.parse(localStorage.getItem("campusdesk_users") || "[]");
           this.events = JSON.parse(localStorage.getItem("campusdesk_events") || "{}");
           this.comments = JSON.parse(localStorage.getItem("campusdesk_comments") || "{}");
-          this.notifications = JSON.parse(localStorage.getItem("campusdesk_notifications") || "[]");
-          this.announcements = JSON.parse(localStorage.getItem("campusdesk_announcements") || "[]");
+          const storedAnns = localStorage.getItem("campusdesk_announcements");
+          if (storedAnns) {
+            try {
+              const parsed = JSON.parse(storedAnns);
+              this.announcements = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...SEED_ANNOUNCEMENTS];
+            } catch {
+              this.announcements = [...SEED_ANNOUNCEMENTS];
+            }
+          } else {
+            this.announcements = [...SEED_ANNOUNCEMENTS];
+          }
           this.auditLogs = JSON.parse(localStorage.getItem("campusdesk_audit") || "[]");
           this.initialized = true;
           return;
@@ -829,7 +838,7 @@ class CampusDataStore {
     title: string,
     content: string,
     level: "info" | "warning" | "alert",
-    creator: UserProfile
+    creator?: Partial<UserProfile>
   ): CampusAnnouncement {
     this.init();
     const ann: CampusAnnouncement = {
@@ -839,10 +848,22 @@ class CampusDataStore {
       level,
       active: true,
       createdAt: new Date().toISOString(),
-      createdBy: creator.displayName,
+      createdBy: creator?.displayName || "Campus Administration",
     };
     this.announcements.unshift(ann);
     this.save();
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("campusdesk_announcement_updated", { detail: ann }));
+    }
+
+    if (isFirebaseConfigured && db) {
+      const activeDb = db;
+      import("firebase/firestore").then(({ doc, setDoc }) => {
+        setDoc(doc(activeDb, "announcements", ann.id), ann).catch(console.warn);
+      }).catch(console.warn);
+    }
+
     return ann;
   }
 
@@ -850,6 +871,17 @@ class CampusDataStore {
     this.init();
     this.announcements = this.announcements.filter((a) => a.id !== id);
     this.save();
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("campusdesk_announcement_updated"));
+    }
+
+    if (isFirebaseConfigured && db) {
+      const activeDb = db;
+      import("firebase/firestore").then(({ doc, deleteDoc }) => {
+        deleteDoc(doc(activeDb, "announcements", id)).catch(console.warn);
+      }).catch(console.warn);
+    }
   }
 
   // Audit Logs

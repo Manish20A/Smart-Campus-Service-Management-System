@@ -24,7 +24,7 @@ import { cn, formatTimeAgo } from "@/lib/utils";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
 
 export function TopBar() {
-  const { user, role } = useAuth();
+  const { user, role, switchDemoRole } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
 
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -43,10 +43,24 @@ export function TopBar() {
     if (user?.uid) {
       setNotifications(dataStore.getNotifications(user.uid));
     }
-    const anns = dataStore.getAnnouncements();
-    setAllAnnouncements(anns);
-    if (anns.length > 0) {
-      setAnnouncement(anns[0]);
+
+    const refreshAnnouncements = () => {
+      const anns = dataStore.getAnnouncements();
+      setAllAnnouncements(anns);
+      if (anns.length > 0) {
+        setAnnouncement(anns[0]);
+      } else {
+        setAnnouncement(null);
+      }
+    };
+
+    refreshAnnouncements();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("campusdesk_announcement_updated", refreshAnnouncements);
+      return () => {
+        window.removeEventListener("campusdesk_announcement_updated", refreshAnnouncements);
+      };
     }
   }, [user]);
 
@@ -90,21 +104,24 @@ export function TopBar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
-          {/* Post Announcement Trigger (Staff & Admin) */}
-          {canManageAnnouncements && (
-            <button
-              type="button"
-              onClick={() => {
-                setAllAnnouncements(dataStore.getAnnouncements());
-                setShowAnnounceModal(true);
-              }}
-              title="Campus Announcements"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium border border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--foreground)] transition-colors cursor-pointer"
-            >
-              <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
-              <span className="hidden md:inline">Announcement</span>
-            </button>
-          )}
+          {/* Announcements Trigger (Accessible to all roles) */}
+          <button
+            type="button"
+            onClick={() => {
+              setAllAnnouncements(dataStore.getAnnouncements());
+              setShowAnnounceModal(true);
+            }}
+            title="Campus Announcements"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-xs font-medium border border-[var(--border)] bg-[var(--surface-elevated)] hover:bg-[var(--surface-hover)] text-[var(--foreground)] transition-colors cursor-pointer relative"
+          >
+            <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
+            <span className="hidden md:inline">Announcements</span>
+            {allAnnouncements.length > 0 && (
+              <span className="h-4 min-w-[16px] px-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-mono flex items-center justify-center font-bold">
+                {allAnnouncements.length}
+              </span>
+            )}
+          </button>
 
           {/* Live Firebase Connected Badge */}
           <button
@@ -254,7 +271,7 @@ export function TopBar() {
               : "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 text-blue-800 dark:text-blue-300"
           )}
         >
-          <div className="flex items-center gap-2 overflow-hidden">
+          <div className="flex items-center gap-2 overflow-hidden flex-1">
             <Megaphone className="h-4 w-4 shrink-0 text-[var(--accent)]" />
             <span className="font-semibold shrink-0">{announcement.title}:</span>
             <span className="truncate">{announcement.content}</span>
@@ -262,7 +279,18 @@ export function TopBar() {
               <span className="text-[10px] opacity-75 hidden sm:inline">— {announcement.createdBy}</span>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setAllAnnouncements(dataStore.getAnnouncements());
+                setShowAnnounceModal(true);
+              }}
+              title="View all announcements"
+              className="text-[11px] font-medium underline opacity-80 hover:opacity-100 transition-colors cursor-pointer"
+            >
+              All Notices ({allAnnouncements.length})
+            </button>
             {canManageAnnouncements && (
               <button
                 type="button"
@@ -290,124 +318,210 @@ export function TopBar() {
         </div>
       )}
 
-      {/* Campus Announcement Modal (Staff & Admin) */}
+      {/* Campus Announcement Modal */}
       {showAnnounceModal && (
         <Modal
           isOpen={showAnnounceModal}
           onClose={() => setShowAnnounceModal(false)}
-          title="Campus Announcements"
-          description="Broadcast notices across all student, staff, and admin dashboards."
+          title="Campus Announcements & Notices"
+          description="Official campus-wide updates, system maintenance warnings, and student bulletins."
         >
           <div className="space-y-4 my-2">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!annTitle.trim() || !annContent.trim()) return;
-                if (!user) return;
-                const created = dataStore.createAnnouncement(
-                  annTitle.trim(),
-                  annContent.trim(),
-                  annLevel,
-                  user
-                );
-                setAnnouncement(created);
-                setAnnouncementDismissed(false);
-                setAllAnnouncements(dataStore.getAnnouncements());
-                setAnnTitle("");
-                setAnnContent("");
-                setShowAnnounceModal(false);
-              }}
-              className="space-y-3"
-            >
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--foreground)]">Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g., Campus Wi-Fi Maintenance Tonight"
-                  value={annTitle}
-                  onChange={(e) => setAnnTitle(e.target.value)}
-                  className="w-full h-8 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--foreground)]">Message</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Provide the details of the announcement..."
-                  value={annContent}
-                  onChange={(e) => setAnnContent(e.target.value)}
-                  className="w-full p-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] resize-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[var(--foreground)]">Urgency Level</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["info", "warning", "alert"] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setAnnLevel(lvl)}
-                      className={cn(
-                        "py-1.5 text-xs rounded-[6px] border font-medium capitalize transition-colors cursor-pointer",
-                        annLevel === lvl
-                          ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)]"
-                          : "border-[var(--border)] text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)]"
-                      )}
-                    >
-                      {lvl === "info" ? "Normal Info" : lvl === "warning" ? "Caution" : "Urgent Alert"}
-                    </button>
-                  ))}
+            {/* Publisher Form (for Staff & Admin) */}
+            {canManageAnnouncements ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!annTitle.trim() || !annContent.trim()) return;
+                  const creator = user || {
+                    displayName: role === "admin" ? "Dr. Arthur Vance (Campus Admin)" : "Prof. Elena Rostova (Staff)",
+                    role: role || "admin",
+                  };
+                  const created = dataStore.createAnnouncement(
+                    annTitle.trim(),
+                    annContent.trim(),
+                    annLevel,
+                    creator
+                  );
+                  setAnnouncement(created);
+                  setAnnouncementDismissed(false);
+                  setAllAnnouncements(dataStore.getAnnouncements());
+                  setAnnTitle("");
+                  setAnnContent("");
+                  setShowAnnounceModal(false);
+                }}
+                className="space-y-3 p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)]/60"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-[var(--foreground)] flex items-center gap-1.5">
+                    <Megaphone className="h-3.5 w-3.5 text-[var(--accent)]" />
+                    Broadcast New Campus Notice
+                  </h4>
+                  <span className="text-[10px] font-mono uppercase text-[var(--accent)] bg-[var(--accent-subtle)] px-2 py-0.5 rounded">
+                    {role === "admin" ? "Admin Mode" : "Staff Mode"}
+                  </span>
                 </div>
-              </div>
 
-              <div className="pt-2 flex justify-end gap-2 border-t border-[var(--border-subtle)]">
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowAnnounceModal(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" variant="primary" size="sm">
-                  Publish Announcement
-                </Button>
-              </div>
-            </form>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g., Campus Wi-Fi Maintenance Tonight"
+                    value={annTitle}
+                    onChange={(e) => setAnnTitle(e.target.value)}
+                    className="w-full h-8 px-3 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+                  />
+                </div>
 
-            {/* Active Announcements List */}
-            {allAnnouncements.length > 0 && (
-              <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
-                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
-                  Active Announcements ({allAnnouncements.length})
-                </h4>
-                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                  {allAnnouncements.map((a) => (
-                    <div
-                      key={a.id}
-                      className="p-2 rounded-[6px] border border-[var(--border)] bg-[var(--surface)] flex items-center justify-between gap-2 text-xs"
-                    >
-                      <div className="truncate">
-                        <span className="font-semibold text-[var(--foreground)]">{a.title}: </span>
-                        <span className="text-[var(--foreground-muted)]">{a.content}</span>
-                      </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">Message Content</label>
+                  <textarea
+                    required
+                    rows={3}
+                    placeholder="Provide full details of the notice for students and staff..."
+                    value={annContent}
+                    onChange={(e) => setAnnContent(e.target.value)}
+                    className="w-full p-2.5 text-xs rounded-[6px] border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] resize-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--foreground)]">Urgency Level</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["info", "warning", "alert"] as const).map((lvl) => (
                       <button
+                        key={lvl}
                         type="button"
-                        onClick={() => {
-                          dataStore.deleteAnnouncement(a.id);
-                          const rem = dataStore.getAnnouncements();
-                          setAllAnnouncements(rem);
-                          setAnnouncement(rem[0] || null);
-                        }}
-                        className="text-red-500 hover:text-red-700 text-xs shrink-0 cursor-pointer p-1"
-                        title="Remove announcement"
+                        onClick={() => setAnnLevel(lvl)}
+                        className={cn(
+                          "py-1.5 text-xs rounded-[6px] border font-medium capitalize transition-colors cursor-pointer",
+                          annLevel === lvl
+                            ? "border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold"
+                            : "border-[var(--border)] text-[var(--foreground-muted)] hover:bg-[var(--surface-hover)]"
+                        )}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        {lvl === "info" ? "Normal Info" : lvl === "warning" ? "Caution" : "Urgent Alert"}
                       </button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2 border-t border-[var(--border-subtle)]">
+                  <Button type="button" variant="outline" size="sm" onClick={() => setShowAnnounceModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" variant="primary" size="sm">
+                    Publish Announcement
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <div className="p-3.5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-elevated)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-[var(--foreground)]">
+                    Viewing in <strong>Student Mode</strong>
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--foreground-muted)]">
+                    Read-only
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">
+                  Official campus broadcasts are issued by university faculty, department staff, and administration. To broadcast or manage notices, switch your active role below:
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      switchDemoRole("staff");
+                    }}
+                  >
+                    Switch to Staff Role
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      switchDemoRole("admin");
+                    }}
+                  >
+                    Switch to Admin Role
+                  </Button>
                 </div>
               </div>
             )}
+
+            {/* Active Announcements List */}
+            <div className="space-y-2 pt-2 border-t border-[var(--border-subtle)]">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--foreground-muted)]">
+                  Active Campus Notices ({allAnnouncements.length})
+                </h4>
+              </div>
+
+              {allAnnouncements.length === 0 ? (
+                <div className="p-4 text-center text-xs text-[var(--foreground-muted)] border border-dashed border-[var(--border)] rounded-[6px]">
+                  No active announcements currently posted.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {allAnnouncements.map((a) => (
+                    <div
+                      key={a.id}
+                      className={cn(
+                        "p-3 rounded-[6px] border transition-colors space-y-1.5",
+                        a.level === "alert"
+                          ? "border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20"
+                          : a.level === "warning"
+                          ? "border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20"
+                          : "border-[var(--border)] bg-[var(--surface)]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              "text-[10px] font-mono uppercase px-1.5 py-0.5 rounded font-semibold",
+                              a.level === "alert"
+                                ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
+                                : a.level === "warning"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                            )}
+                          >
+                            {a.level}
+                          </span>
+                          <h5 className="text-xs font-semibold text-[var(--foreground)]">{a.title}</h5>
+                        </div>
+                        {canManageAnnouncements && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              dataStore.deleteAnnouncement(a.id);
+                              const rem = dataStore.getAnnouncements();
+                              setAllAnnouncements(rem);
+                              setAnnouncement(rem[0] || null);
+                            }}
+                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                            title="Delete announcement"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-[var(--foreground-muted)] leading-relaxed">{a.content}</p>
+                      <div className="flex items-center justify-between text-[10px] text-[var(--foreground-subtle)] font-mono pt-1">
+                        <span>Posted by: {a.createdBy || "Campus Administration"}</span>
+                        <span>{formatTimeAgo(a.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </Modal>
       )}
