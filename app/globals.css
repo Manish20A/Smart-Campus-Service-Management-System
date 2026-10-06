@@ -1,0 +1,177 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #FAF7F2;
+  --surface: #FFFDF9;
+  --surface-elevated: #FFFFFF;
+  --surface-hover: #F5EFE6;
+  --border: #E8E1D6;
+  --border-subtle: #F2ECE2;
+  --foreground: #1F1B16;
+  --foreground-muted: #6B6358;
+  --foreground-subtle: #968D80;
+
+  --accent: #C24A1E;
+  --accent-hover: #A83B14;
+  --accent-muted: #D96A42;
+  --accent-subtle: #FDF1EB;
+  --accent-foreground: #FFFFFF;
+
+  --sage: #2D6A4F;
+  --sage-subtle: #EBF4EF;
+  --sage-border: #BCD8C9;
+  --sage-text: #1B4332;
+
+  --amber: #B45309;
+  --amber-subtle: #FEF3C7;
+  --amber-border: #FDE68A;
+  --amber-text: #78350F;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+.dark {
+  --background: #14120F;
+  --surface: #1C1916;
+  --surface-elevated: #24201C;
+  --surface-hover: #2B2722;
+  --border: #2B2722;
+  --border-subtle: #36312B;
+  --foreground: #EDE8E0;
+  --foreground-muted: #9E9486;
+  --foreground-subtle: #756D62;
+
+  --accent: #D95932;
+  --accent-hover: #E86B45;
+  --accent-muted: #C04A26;
+  --accent-subtle: #2C1812;
+  --accent-foreground: #FFFFFF;
+
+  --sage: #4E9B70;
+  --sage-subtle: #15261C;
+  --sage-border: #254734;
+  --sage-text: #8FD4AB;
+
+  --amber: #E09224;
+  --amber-subtle: #2A1D0D;
+  --amber-border: #4D3315;
+  --amber-text: #FBBF24;
+}
+
+@theme {
+  --color-bg: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-fg: var(--foreground);
+  --color-fg-muted: var(--foreground-muted);
+  --color-fg-subtle: var(--foreground-subtle);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-fg: var(--accent-foreground);
+
+  --color-sage: var(--sage);
+  --color-sage-subtle: var(--sage-subtle);
+  --color-sage-border: var(--sage-border);
+  --color-sage-text: var(--sage-text);
+
+  --color-amber: var(--amber);
+  --color-amber-subtle: var(--amber-subtle);
+  --color-amber-border: var(--amber-border);
+  --color-amber-text: var(--amber-text);
+
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Base styles */
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: light dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Paper noise texture for landing page */
+.noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--foreground-subtle);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Print styles for request receipts */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-receipt {
+    border: 1px solid #CCCCCC !important;
+    box-shadow: none !important;
+    padding: 24px !important;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 35s linear infinite;
+}

@@ -1,0 +1,156 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isRole(targetRole) {
+      return isAuthenticated() && getUserData().role == targetRole;
+    }
+
+    function isAdmin() {
+      return isRole('admin');
+    }
+
+    function isStaff() {
+      return isRole('staff') || isAdmin();
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getStaffDepartment() {
+      return getUserData().departmentId;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Only admins can alter role or create new users with roles; user can update basic profile
+      allow create: if isAuthenticated() && (
+        (request.auth.uid == userId && (!('role' in request.resource.data) || request.resource.data.role == 'student')) ||
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.auth.uid == userId && request.resource.data.role == resource.data.role)
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Departments Collection
+    match /departments/{departmentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Services Catalog
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Service Requests Collection
+    match /requests/{requestId} {
+      // Read: Admin can read all; Staff can read if matching their department or assigned; Students can read only their own
+      allow read: if isAuthenticated() && (
+        isAdmin() ||
+        (isRole('staff') && (resource.data.departmentId == getStaffDepartment() || resource.data.assignedToId == request.auth.uid)) ||
+        (resource.data.studentId == request.auth.uid)
+      );
+
+      // Create: Student can create request for themselves (role cannot be altered, status must be pending)
+      allow create: if isAuthenticated() && (
+        (request.resource.data.studentId == request.auth.uid && request.resource.data.status == 'pending') ||
+        isAdmin()
+      );
+
+      // Update:
+      // - Admins can update anything
+      // - Staff can update if assigned to them or their department
+      // - Students can only cancel (if currently pending) or submit post-completion feedback
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isRole('staff') && (resource.data.departmentId == getStaffDepartment() || resource.data.assignedToId == request.auth.uid)) ||
+        (resource.data.studentId == request.auth.uid && (
+          (resource.data.status == 'pending' && request.resource.data.status == 'cancelled') ||
+          (resource.data.status == 'completed' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'updatedAt'])) ||
+          (resource.data.status == 'completed' && request.resource.data.status == 'reopened')
+        ))
+      );
+
+      allow delete: if isAdmin();
+
+      // Events Subcollection (Immutable Audit Trail)
+      match /events/{eventId} {
+        allow read: if isAuthenticated() && (
+          isAdmin() ||
+          (isRole('staff') && (get(/databases/$(database)/documents/requests/$(requestId)).data.departmentId == getStaffDepartment())) ||
+          (get(/databases/$(database)/documents/requests/$(requestId)).data.studentId == request.auth.uid)
+        );
+        allow create: if isAuthenticated();
+        allow update, delete: if false; // strictly immutable!
+      }
+
+      // Comments Subcollection
+      match /comments/{commentId} {
+        // Students can only read non-internal comments
+        allow read: if isAuthenticated() && (
+          isAdmin() ||
+          (isRole('staff') && (get(/databases/$(database)/documents/requests/$(requestId)).data.departmentId == getStaffDepartment())) ||
+          (get(/databases/$(database)/documents/requests/$(requestId)).data.studentId == request.auth.uid && resource.data.isInternal == false)
+        );
+
+        // Students can only post non-internal comments; Staff/Admin can post both
+        allow create: if isAuthenticated() && (
+          isAdmin() ||
+          isRole('staff') ||
+          (get(/databases/$(database)/documents/requests/$(requestId)).data.studentId == request.auth.uid && request.resource.data.isInternal == false)
+        );
+
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Counters (atomic IDs)
+    match /counters/{counterId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // System Settings
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
